@@ -433,29 +433,12 @@ models on the agreed metrics and visualize importances and partial dependence.
 
 = Appendix: Analysis Code
 
-The following scripts reproduce every number and figure in this report. They are also in the
-project repository under `analysis/`.
-
-#v(0.3em)
-== `profile_data.py` --- data audit
-#[
-  #set text(size: 7pt)
-  #raw(read("../analysis/profile_data.py"), lang: "python", block: true)
-]
-
-#v(0.6em)
-== `clean_eda.py` --- cleaning, feature engineering, figures
-#[
-  #set text(size: 7pt)
-  #raw(read("../analysis/clean_eda.py"), lang: "python", block: true)
-]
-
-#v(0.6em)
-== `report_numbers.py` --- summary statistics cited above
-#[
-  #set text(size: 7pt)
-  #raw(read("../analysis/report_numbers.py"), lang: "python", block: true)
-]
+// TODO(r-transition): the analysis is being ported from Python to R. Replace this
+// placeholder with the R scripts under `analysis/` (see docs/transition.md).
+The analysis code is being migrated from Python to R. The reproduction scripts will live
+under `analysis/` and be attached here once the port is verified against the parity
+checklist in `docs/transition.md`. The original Python implementation is preserved on the
+`legacy-python` branch of this repository.
 
 #v(0.6em)
 = References

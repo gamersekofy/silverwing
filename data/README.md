@@ -15,7 +15,7 @@ committing ~515 MB of third-party data.
 | `USvideos.csv` | 62,756,152 | `09b4eb71295752705e472ebefeac9d2afab4177b7a818af795dea62744a48eb2` |
 | `US_category_id.json` | 8,496 | `2e892c5a5e48d284e40fd37de0313912264041aef8833e5323bd2b2fd08c7e25` |
 
-Only the **US** files are read by the current code (`analysis/*.py`). The other regions
+Only the **US** files are read by the current code (`analysis/*.R`). The other regions
 are present locally and may be used for a later multi-region extension.
 
 ## Full local inventory
@@ -41,9 +41,9 @@ Preferred: run the fetcher, which downloads and unpacks everything into this fol
 verifies the checksums:
 
 ```sh
-python analysis/download_data.py             # fetch if missing
-python analysis/download_data.py --force     # re-download
-python analysis/download_data.py --from-zip ~/Downloads/youtube-new.zip
+Rscript analysis/download_data.R            # fetch if missing
+Rscript analysis/download_data.R --force    # re-download
+Rscript analysis/download_data.R --from-zip ~/Downloads/youtube-new.zip
 ```
 
 It needs network access but no Kaggle account (the dataset is public); if you do have a
