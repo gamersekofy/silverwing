@@ -358,7 +358,7 @@ pyrightconfig.json
 /data/*.csv
 /data/*.json
 
-# Derived analysis outputs (regenerate with: python analysis/clean_eda.py)
+# Derived analysis outputs (regenerate with: Rscript analysis/clean_eda.R)
 /analysis/output/
 
 # Typst preview renders

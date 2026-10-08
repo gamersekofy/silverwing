@@ -57,8 +57,8 @@ Following the project proposal, we pursue three complementary goals:
   tag count, comment/rating settings) have statistically significant effects on audience
   reception, and in which direction.
 
-The first two are prediction tasks; the third is a statistical-inference task, and the two
-call for different tools (see @sec-modeling).
+The first two are prediction tasks; the third is a statistical-inference task, and these two
+kinds of task call for different tools (see @sec-modeling).
 
 == Research questions
 
@@ -134,7 +134,7 @@ predictors are *derived* from raw text/time fields during preprocessing (@sec-pr
     [`video_error_or_removed`],[boolean],[filter],      [Video unavailable; used as a filter.],
     [`description`],     [text],        [drop],         [Description text (570 missing); unused.],
   ),
-  caption: [Raw variables, types, roles, and descriptions. `X` = predictor, `Y` = outcome.],
+  caption: [Raw variables, types, roles, and descriptions.],
 ) <tbl-vars>
 
 *Outcomes.* `views`, `likes`, `dislikes`, `comment_count`; plus derived `log(1 + x)`
@@ -155,7 +155,8 @@ Before transforming anything we audited the raw file. Findings:
   plus 8 empty strings. Since `description` is not used, no imputation is required.
 + *Sentinels.* `tags` uses the literal string `[none]` in *1,535* rows (about 3.8%). This must
   be mapped to "zero tags," not counted as one tag.
-+ *Duplicates.* 48 fully duplicated rows and 2 duplicate `(video_id, trending_date)` pairs.
++ *Duplicates.* 48 fully duplicated rows, plus 2 further rows that repeat a
+  `(video_id, trending_date)` key with differing content (so 50 rows share a video-day key in all).
 + *Flags.* `video_error_or_removed` is TRUE for only *23* rows; `comments_disabled` and
   `ratings_disabled` are TRUE for 1.55% and 0.41% of rows.
 + *Logical consistency.* No violations: no row has `likes`, `dislikes`, or `comment_count`
@@ -171,8 +172,8 @@ is justified:
   available; their engagement counts are unreliable and they cannot be modeled fairly.
 + *Drop exact duplicates.* 48 rows are byte-identical repeats (data-collection artifacts)
   and would otherwise double-count those videos.
-+ *Drop duplicate video-days.* 2 rows repeat the same `(video_id, trending_date)` pair;
-  these are redundant snapshots of the same day.
++ *Drop duplicate video-days.* After exact duplicates are gone, 2 rows still repeat a
+  `(video_id, trending_date)` key; these are redundant snapshots of the same day.
 + *Collapse to one row per video.* We keep each video's *last* trending snapshot
   (maximum `trending_date`), which encodes final cumulative performance and removes the
   within-video dependence that would otherwise leak across folds (@sec-issues).
@@ -268,9 +269,9 @@ co-occur with weaker performance.
 == Time effects are mild
 
 @fig-time shows mean `log(1 + views)` by publish hour and day of week. The hour profile is
-nearly flat, with a modest bump in the early UTC morning, and Thursday/Friday publish days
-are slightly higher. Crucially, `publish_hour` is *UTC*, not US-local, so these patterns
-are confounded by timezone (@sec-issues). The effect sizes are small relative to the
+nearly flat, with modest bumps around 04:00--05:00 and a peak at 09:00 UTC, and Thursday/Friday
+publish days are slightly higher. Crucially, `publish_hour` is *UTC*, not US-local, so these
+patterns are confounded by timezone (@sec-issues). The effect sizes are small relative to the
 category spread.
 
 #figure(
@@ -391,9 +392,9 @@ non-linearity complicate formal significance testing.
 == Validation framework
 
 + *Grouped cross-validation.* Because snapshots repeat within videos and channels repeat
-  across the data, we use `GroupKFold` grouped by `video_id` (snapshot level) and by
-  `channel_title` (video level), with stratification on the binary target. This prevents the
-  leakage identified in @sec-issues.
+  across the data, we use grouped cross-validation (`StratifiedGroupKFold`), grouped by
+  `video_id` (snapshot level) and by `channel_title` (video level), stratified on the binary
+  target. This prevents the leakage identified in @sec-issues.
 + *Nested CV.* Hyperparameters are tuned in an inner loop so that the reported error is not
   optimistic.
 + *Temporal holdout (secondary).* As a robustness check we train on earlier trending dates
@@ -433,16 +434,33 @@ models on the agreed metrics and visualize importances and partial dependence.
 
 = Appendix: Analysis Code
 
-// TODO(r-transition): the analysis is being ported from Python to R. Replace this
-// placeholder with the R scripts under `analysis/` (see docs/transition.md).
-The analysis code is being migrated from Python to R. The reproduction scripts will live
-under `analysis/` and be attached here once the port is verified against the parity
-checklist in `docs/transition.md`. The original Python implementation is preserved on the
-`legacy-python` branch of this repository.
+The following scripts reproduce every number and figure in this report. They are also in
+the project repository under `analysis/`.
+
+#v(0.3em)
+== `profile_data.R` --- data audit
+#[
+  #set text(size: 7pt)
+  #raw(read("../analysis/profile_data.R"), lang: "r", block: true)
+]
+
+#v(0.6em)
+== `clean_eda.R` --- cleaning, feature engineering, figures
+#[
+  #set text(size: 7pt)
+  #raw(read("../analysis/clean_eda.R"), lang: "r", block: true)
+]
+
+#v(0.6em)
+== `report_numbers.R` --- summary statistics cited above
+#[
+  #set text(size: 7pt)
+  #raw(read("../analysis/report_numbers.R"), lang: "r", block: true)
+]
 
 #v(0.6em)
 = References
 
-+ Jolly, M. (and/or the corresponding Kaggle release). *Trending YouTube Video Statistics*.
-  Dataset, Kaggle. (Verify the exact contributor/citation before submission.)
++ Jolly, M./datasnaek. *Trending YouTube Video Statistics*.
+  Dataset, Kaggle.
 + YouTube. *Trending* and platform documentation, 2018.

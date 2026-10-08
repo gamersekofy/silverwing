@@ -28,7 +28,16 @@
     {
       overlays.default = final: prev: rec {
         rEnv = final.rWrapper.override {
-          packages = with final.rPackages; [ knitr ];
+          packages = with final.rPackages; [
+            knitr
+            tidyverse
+            lubridate
+            jsonlite
+            digest
+            scales
+            patchwork
+            e1071
+          ];
         };
       };
 
@@ -39,6 +48,7 @@
             packages = with pkgs; [
               rEnv
               pandoc
+              typst
               texlive.combined.scheme-full
               self.formatter.${system}
             ];
