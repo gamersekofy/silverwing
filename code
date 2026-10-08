@@ -1,0 +1,51 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Importing the Data
+unzip("'/Users/jannacarandang/Desktop/Math-448 Project/USvideos.csv.zip'")
+list.files()
+
+data = read.csv("USvideos.csv")
+head(data)
+str(data)
+dim(data)
+
+
+
+# Checking for missing values
+colSums(is.na(data))
+data[!complete.cases(data), ]
+
+### No missing values found in this dataset
+
+# Checking for duplicates
+sum(duplicated(data))
+clean.data = data[!duplicated(data), ]
+
+dim(clean.data)
+### Removed the duplicates, now we have 40,901 observations instead of 40,949 observations
+
+
+# Raw View Count
+hist(data$views,
+     breaks = 50,
+     main = "Distribution of YouTube Views",
+     xlab = "View Count")
+
+#Log-transformed view count
+hist(log(data$views),
+     breaks = 50,
+     main = "Distribution of Log YouTube Views",
+     xlab = "Log(View Count)")
+
+## Shows raw views is right-skewed so we have to do log-transformed historgram to make the data more balanced
+
+# Boxplots of log(1 + views) by category
+boxplot(log1p(views) ~ reorder(category_id, log1p(views), FUN = function(x) -median(x)),
+        data = data,
+        main = "Log(1 + Views) by Category",
+        xlab = "Category ID",
+        ylab = "Log(1 + Views)")
+```
