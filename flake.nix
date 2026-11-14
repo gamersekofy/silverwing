@@ -49,7 +49,6 @@
               rEnv
               pandoc
               typst
-              texlive.combined.scheme-full
               self.formatter.${system}
             ];
           };

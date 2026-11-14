@@ -1,0 +1,5 @@
+"Classifier","TN","FP","FN","TP"
+"Majority",4757,0,1591,0
+"Logistic",4641,116,1503,88
+"Tree",4757,0,1591,0
+"Bagging",4459,298,1339,252

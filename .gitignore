@@ -361,8 +361,9 @@ pyrightconfig.json
 # Derived analysis outputs (regenerate with: Rscript analysis/clean_eda.R)
 /analysis/output/
 
-# Typst preview renders
+# Typst preview renders and generated verification artifacts
 /report/_preview-*.png
+/report/review/
 
 # Created by https://www.toptal.com/developers/gitignore/api/r
 # Edit at https://www.toptal.com/developers/gitignore?templates=r

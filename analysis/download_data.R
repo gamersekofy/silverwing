@@ -62,7 +62,19 @@ parse_args <- function(argv) {
 
 # --- helpers -----------------------------------------------------------------
 sha256 <- function(path) {
-  digest::digest(path, algo = "sha256", file = TRUE)
+  if (requireNamespace("digest", quietly = TRUE)) {
+    return(digest::digest(path, algo = "sha256", file = TRUE))
+  }
+  tool <- Sys.which("sha256sum")
+  args <- shQuote(path)
+  if (!nzchar(tool)) {
+    tool <- Sys.which("shasum")
+    args <- c("-a", "256", shQuote(path))
+  }
+  if (!nzchar(tool)) stop("SHA-256 verification needs digest, sha256sum or shasum.")
+  result <- system2(tool, args, stdout = TRUE)
+  stopifnot(is.null(attr(result, "status")), length(result) == 1L)
+  sub(" .*", "", result)
 }
 
 already_present <- function(dest) {
@@ -135,13 +147,13 @@ main <- function() {
     cat(sprintf("Extracting %s -> %s ...\n", opts$from_zip, dest))
     n <- extract_keep(opts$from_zip, dest)
     cat(sprintf("  extracted %d file(s)\n", length(n)))
-    verify(dest); inventory(dest)
+    stopifnot(verify(dest)); inventory(dest)
     return(invisible())
   }
 
   if (already_present(dest) && !opts$force) {
     cat(sprintf("Data already present in %s (use --force to re-download).\n", dest))
-    verify(dest); inventory(dest)
+    stopifnot(verify(dest)); inventory(dest)
     return(invisible())
   }
 
@@ -154,7 +166,7 @@ main <- function() {
   cat("Extracting ...\n")
   n <- extract_keep(zip_path, dest)
   cat(sprintf("  extracted %d file(s)\n", length(n)))
-  verify(dest); inventory(dest)
+  stopifnot(verify(dest)); inventory(dest)
 }
 
 main()

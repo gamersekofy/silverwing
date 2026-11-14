@@ -5,10 +5,8 @@
 # All output goes to stdout so it can be captured into the report's data section.
 
 suppressPackageStartupMessages({
-  library(readr)
   library(dplyr)
   library(stringr)
-  library(jsonlite)
   library(e1071)
 })
 
@@ -31,17 +29,10 @@ kurt <- function(x) e1071::kurtosis(x, na.rm = TRUE, type = 2)
 
 banner <- function(title) cat(sprintf("\n%s\n%s\n%s\n", strrep("=", 78), title, strrep("=", 78)))
 
-col_types <- cols(
-  video_id = col_character(), trending_date = col_character(), title = col_character(),
-  channel_title = col_character(), category_id = col_integer(), publish_time = col_character(),
-  tags = col_character(), views = col_double(), likes = col_double(), dislikes = col_double(),
-  comment_count = col_double(), thumbnail_link = col_character(),
-  comments_disabled = col_logical(), ratings_disabled = col_logical(),
-  video_error_or_removed = col_logical(), description = col_character()
-)
+source(file.path(ROOT, "analysis", "data_core.R"))
 
 main <- function() {
-  df <- read_csv(CSV, col_types = col_types, progress = FALSE)
+  df <- as_tibble(read_trending_raw(DATA))
 
   banner("1. DIMENSIONS & COLUMNS")
   cat(sprintf("shape (rows, cols): %d %d\n", nrow(df), ncol(df)))
@@ -106,8 +97,7 @@ main <- function() {
   }
 
   banner("8. CATEGORY DISTRIBUTION (id -> name)")
-  cats <- jsonlite::fromJSON(CATS)
-  id2name <- setNames(as.character(cats$items$snippet$title), as.character(cats$items$id))
+  id2name <- read_category_lookup(CATS)
   cat("category_id value_counts:\n")
   print(table(df$category_id))
   cat(sprintf("\nnum distinct categories in data: %d\n", n_distinct(df$category_id)))

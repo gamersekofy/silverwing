@@ -17,7 +17,8 @@ script_path <- function() {
 ROOT <- dirname(dirname(script_path()))
 videos <- read_csv(file.path(ROOT, "analysis", "output", "videos.csv"),
                    col_types = cols(.default = col_guess()), progress = FALSE)
-raw <- read_csv(file.path(ROOT, "data", "USvideos.csv"), progress = FALSE, show_col_types = FALSE)
+source(file.path(ROOT, "analysis", "data_core.R"))
+raw <- as_tibble(read_trending_raw(file.path(ROOT, "data")))
 
 describe <- function(x, label, p = c(.25, .5, .75)) {
   qs <- quantile(x, p, na.rm = TRUE)

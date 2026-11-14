@@ -9,16 +9,7 @@
 #
 # Run:  Rscript analysis/clean_eda.R
 
-suppressPackageStartupMessages({
-  library(readr)
-  library(dplyr)
-  library(tidyr)
-  library(stringr)
-  library(forcats)
-  library(ggplot2)
-  library(patchwork)
-  library(jsonlite)
-})
+
 
 # --- paths -------------------------------------------------------------------
 script_path <- function() {
@@ -34,6 +25,28 @@ FIGS <- file.path(OUT, "figures")
 dir.create(OUT, recursive = TRUE, showWarnings = FALSE)
 dir.create(FIGS, recursive = TRUE, showWarnings = FALSE)
 
+source(file.path(ROOT, "analysis", "data_core.R"))
+# Reuse the PPR1 preparation without plotting-package dependencies when requested.
+if ("--data-only" %in% commandArgs(trailingOnly = TRUE)) {
+  baseline <- prepare_ppr1_data(DATA)
+  videos <- baseline$videos
+  videos$high_views <- as.integer(videos$views >= quantile(videos$views, .75))
+  write.csv(videos, file.path(OUT, "videos.csv"), row.names = FALSE)
+  write.csv(data.frame(step = names(baseline$counts), rows = baseline$counts),
+    file.path(OUT, "summary_cleaning_counts.csv"), row.names = FALSE)
+  cat("PPR1 shared preparation: 6348 videos; EDA plots not regenerated.\n")
+  quit(save = "no", status = 0)
+}
+
+suppressPackageStartupMessages({
+  library(readr)
+  library(dplyr)
+  library(tidyr)
+  library(forcats)
+  library(ggplot2)
+  library(patchwork)
+})
+
 invisible(suppressWarnings(try(Sys.setlocale("LC_ALL", "C.UTF-8"), silent = TRUE)))
 
 # Bias-corrected sample skewness (Fisher-Pearson g1); e1071 type 2.
@@ -48,15 +61,6 @@ log_msg <- function(...) {
   step_log[[length(step_log) + 1L]] <<- msg
 }
 
-col_types <- cols(
-  video_id = col_character(), trending_date = col_character(), title = col_character(),
-  channel_title = col_character(), category_id = col_integer(), publish_time = col_character(),
-  tags = col_character(), views = col_double(), likes = col_double(), dislikes = col_double(),
-  comment_count = col_double(), thumbnail_link = col_character(),
-  comments_disabled = col_logical(), ratings_disabled = col_logical(),
-  video_error_or_removed = col_logical(), description = col_character()
-)
-
 savefig <- function(plot, name) {
   path <- file.path(FIGS, paste0(name, ".png"))
   ggsave(path, plot, width = 13, height = 5, dpi = 140, bg = "white")
@@ -64,93 +68,15 @@ savefig <- function(plot, name) {
 }
 
 main <- function() {
-  raw <- read_csv(file.path(DATA, "USvideos.csv"), col_types = col_types, progress = FALSE)
-  n0 <- nrow(raw)
-  log_msg(sprintf("raw rows = %d, columns = %d", n0, ncol(raw)))
-
-  # ---- parse dates -------------------------------------------------------
-  # trending_date uses an unusual YY.DD.MM format (17.14.11 -> 2017-11-14).
-  raw <- raw |>
-    mutate(
-      trending_date_parsed = as.Date(trending_date, format = "%y.%d.%m"),
-      publish_time_parsed  = as.POSIXct(publish_time, format = "%Y-%m-%dT%H:%M:%OS", tz = "UTC")
-    )
-  log_msg(sprintf("trending range %s .. %s", min(raw$trending_date_parsed), max(raw$trending_date_parsed)))
-  log_msg(sprintf("publish  range %s .. %s",
-                  format(min(raw$publish_time_parsed), tz = "UTC", usetz = TRUE),
-                  format(max(raw$publish_time_parsed), tz = "UTC", usetz = TRUE)))
-
-  # ---- cleaning steps with counts ---------------------------------------
-  clean <- raw
-  counts <- c(raw = n0)
-
-  n_removed_flag <- sum(clean$video_error_or_removed, na.rm = TRUE)
-  clean <- clean |> filter(!video_error_or_removed)
-  counts[["drop_error_or_removed"]] <- nrow(clean)
-  log_msg(sprintf("drop video_error_or_removed: -%d rows (flagged=%d)", n0 - nrow(clean), n_removed_flag))
-
-  before <- nrow(clean)
-  clean <- clean |> distinct()
-  counts[["drop_full_dup"]] <- nrow(clean)
-  log_msg(sprintf("drop fully duplicated rows: -%d rows", before - nrow(clean)))
-
-  before <- nrow(clean)
-  # keep the *last* occurrence of each (video_id, trending_date) pair
-  clean <- clean |>
-    mutate(.row = row_number()) |>
-    group_by(video_id, trending_date_parsed) |>
-    slice_max(.row, n = 1, with_ties = FALSE) |>
-    ungroup() |>
-    arrange(.row) |>
-    select(-.row)
-  counts[["drop_dup_snapshot"]] <- nrow(clean)
-  log_msg(sprintf("drop duplicate (video_id, trending_date) snapshots: -%d rows", before - nrow(clean)))
-
-  # ---- feature engineering ----------------------------------------------
-  clean <- clean |>
-    mutate(
-      publish_hour      = as.integer(format(publish_time_parsed, "%H", tz = "UTC")),
-      publish_dayofweek = as.integer(lubridate::wday(publish_time_parsed, week_start = 1) - 1L),
-      publish_date      = as.Date(format(publish_time_parsed, "%Y-%m-%d", tz = "UTC")),
-      days_to_trend     = as.integer(trending_date_parsed - publish_date),
-      title_length      = nchar(title, type = "chars"),
-      title_word_count  = str_count(title, "\\S+")
-    )
-
-  # tags is a '|'-separated list; '[none]' means no tags.
-  tags_clean <- str_trim(clean$tags)
-  tags_clean[is.na(tags_clean)] <- ""
-  clean <- clean |>
-    mutate(tag_count = if_else(tags_clean == "[none]" | tags_clean == "",
-                               0L, str_count(tags_clean, fixed("|")) + 1L))
-
-  cats <- jsonlite::fromJSON(file.path(DATA, "US_category_id.json"))
-  id2name <- setNames(as.character(cats$items$snippet$title), as.character(cats$items$id))
-  clean <- clean |> mutate(category = id2name[as.character(category_id)])
-
-  clean <- clean |>
-    mutate(
-      log_views    = log1p(views),   log_likes    = log1p(likes),
-      log_dislikes = log1p(dislikes), log_comments = log1p(comment_count),
-      like_rate    = likes / views,
-      comment_rate = comment_count / views,
-      dislike_rate = dislikes / views
-    )
-
-  log_msg(sprintf("snapshot-level table after cleaning: %d rows", nrow(clean)))
-
-  # ---- deduplicate to one row per video (final cumulative snapshot) ------
-  videos <- clean |>
-    arrange(video_id, trending_date_parsed) |>
-    slice_tail(n = 1, by = video_id)
-  counts[["video_level"]] <- nrow(videos)
-  log_msg(sprintf("video-level table (last trending snapshot per video): %d videos", nrow(videos)))
-
-  # classification target: top-quartile final views
-  q75 <- quantile(videos$views, 0.75)
+  baseline <- prepare_ppr1_data(DATA)
+  raw <- as_tibble(baseline$raw)
+  videos <- as_tibble(baseline$videos)
+  counts <- baseline$counts
+  for (step in names(counts)) log_msg(sprintf("%s: %d rows", step, counts[[step]]))
+  q75 <- quantile(videos$views, .75)
   videos <- videos |> mutate(high_views = as.integer(views >= q75))
   log_msg(sprintf("top-quartile views threshold = %s; positives = %.1f%%",
-                  format(round(q75), big.mark = ","), 100 * mean(videos$high_views)))
+    format(round(q75), big.mark = ","), 100 * mean(videos$high_views)))
 
   write_csv(videos, file.path(OUT, "videos.csv"))
 

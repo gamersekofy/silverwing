@@ -46,8 +46,8 @@ Rscript analysis/download_data.R --force    # re-download
 Rscript analysis/download_data.R --from-zip ~/Downloads/youtube-new.zip
 ```
 
-It needs network access but no Kaggle account (the dataset is public); if you do have a
-Kaggle account it will use `KAGGLE_USERNAME` / `KAGGLE_KEY` or `~/.kaggle/kaggle.json`.
+It uses public HTTPS and reads no Kaggle credentials. SHA-256 verification uses the
+R package `digest` when present, otherwise `sha256sum` or `shasum`.
 
 Equivalent manual alternatives: `kagglehub.dataset_download("datasnaek/youtube-new")`, or
 `curl -L -o youtube-new.zip https://www.kaggle.com/api/v1/datasets/download/datasnaek/youtube-new`
