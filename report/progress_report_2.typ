@@ -250,19 +250,19 @@ confusion matrices and F1. ROC-AUC assesses ranking separately from that cutoff.
 
 The best observed pooled RMSE is #n.best_rmse for #n.best_model, compared with
 #n.baseline_rmse for the training-mean predictor. That is a #n.improvement% reduction in
-log-scale RMSE, with MAE #n.best_mae and R² #n.best_r2. We use “best observed” rather than
-claiming universal superiority: the winner is chosen after comparing these estimates,
+log-scale RMSE, with MAE #n.best_mae and R² #n.best_r2. We use the term “best observed” 
+as the model had performed best among those tested. The winner is chosen after comparing these estimates,
 and it has not been confirmed on a separate untouched final test set.
 
 OLS explains only about #n.ols_pct% of held-out log-view variation. Ridge and the pruned
 tree have similar RMSEs (#n.ridge_rmse and #n.tree_rmse), while bagging is worse at
 #n.bag_rmse despite
-its greater flexibility. Thus the data do not support a claim that a more complex
-method must predict better. The inner one-SE rule selects ridge strength 1 in every
-outer fold and regression trees with only #n.leaves_min–#n.leaves_max leaves. Weak metadata
-signal and missing channel-popularity information are plausible limitations, not
-identified explanations of the ranking. The small gaps between fitted models should
-not be described as conclusive statistical superiority.
+its greater flexibility. The data does not support the claim that a more complex method has better predictions. 
+The inner one-SE rule selects ridge strength 1 in every
+outer fold and regression trees with only #n.leaves_min–#n.leaves_max leaves. Weak metadata and missing channel-popularity
+data may have limited model performance, but we cannot confirm that those factors had caused those results.
+The small differences between models are not enough to prove that a singular model is significantly better
+than another model.
 
 For bagging, moving from the first 100 trees to all 200 changes log predictions by an
 RMS of #n.bag_change and changes pooled RMSE from #n.bag_100_rmse to #n.bag_200_rmse.
